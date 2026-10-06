@@ -209,6 +209,7 @@ jobs:
         with:
           target: "http://127.0.0.1:8000"
           fail_action: false
+          allow_issue_writing: false
           artifact_name: "zap-dast-report"
 
       - name: Mostrar log da API

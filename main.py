@@ -2,7 +2,6 @@ import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
 
 from database.connection import create_db_and_tables
 
@@ -11,6 +10,8 @@ from routes.consulta_routes import router as consulta_router
 from routes.paciente_routes import router as paciente_router
 from routes.profissional_routes import router as profissional_router
 from routes.admin_routes import router as admin_router
+
+from iast import registrar_evento_iast
 
 
 app = FastAPI(
@@ -23,10 +24,10 @@ app = FastAPI(
 )
 
 
- 
+# ==========================================================
 # CORS
+# ==========================================================
 
-# Lista explícita de origens autorizadas.
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
@@ -42,8 +43,28 @@ app.add_middleware(
 )
 
 
+# ==========================================================
+# IAST — INSTRUMENTAÇÃO DE RUNTIME
+# ==========================================================
 
+@app.middleware("http")
+async def iast_runtime_monitor(request: Request, call_next):
+    response = await call_next(request)
+
+    registrar_evento_iast(
+        metodo=request.method,
+        caminho=request.url.path,
+        status_code=response.status_code,
+        observacao="requisicao observada durante a execucao da aplicacao"
+    )
+
+    return response
+
+
+# ==========================================================
 # HEADERS DE SEGURANÇA
+# ==========================================================
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -65,7 +86,9 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+# ==========================================================
 # ROTAS
+# ==========================================================
 
 app.include_router(auth_router)
 app.include_router(consulta_router)
@@ -74,15 +97,19 @@ app.include_router(profissional_router)
 app.include_router(admin_router)
 
 
-
+# ==========================================================
 # BANCO DE DADOS
+# ==========================================================
+
 @app.on_event("startup")
 def on_startup():
     if os.getenv("TESTING") != "1":
         create_db_and_tables()
 
 
+# ==========================================================
 # HEALTHCHECK
+# ==========================================================
 
 @app.get("/", tags=["Healthcheck"])
 def healthcheck():

@@ -18,9 +18,9 @@ permissions:
 
 jobs:
 
-
+  # ==========================================================
   # 1. SAST - ANÁLISE ESTÁTICA DO CÓDIGO
-
+  # ==========================================================
 
   sast:
     name: SAST - Bandit
@@ -55,10 +55,9 @@ jobs:
           name: bandit-report
           path: bandit-report.json
 
-
-
+  # ==========================================================
   # 2. SCA - ANÁLISE DE DEPENDÊNCIAS
-
+  # ==========================================================
 
   sca:
     name: SCA - pip-audit
@@ -92,13 +91,12 @@ jobs:
           name: pip-audit-report
           path: pip-audit-report.json
 
-
-
-  # 3. TESTES AUTOMATIZADOS DE SEGURANÇA
-
+  # ==========================================================
+  # 3. TESTES AUTOMATIZADOS DE SEGURANÇA + IAST
+  # ==========================================================
 
   security-tests:
-    name: Pytest - Security Tests
+    name: Pytest - Security Tests + IAST
     runs-on: ubuntu-latest
 
     steps:
@@ -123,37 +121,21 @@ jobs:
         run: |
           pytest tests/test_exercicio12_seguranca.py -v
 
-
-
-  # 4. SECURITY GATE
-
-
-  security-gate:
-    name: Security Gate
-    runs-on: ubuntu-latest
-
-    needs:
-      - sast
-      - sca
-      - security-tests
-
-    steps:
-      - name: Verificar resultado das análises
+      - name: Verificar evidência IAST
         run: |
-          echo "=========================================="
-          echo "        DEVSECOPS SECURITY GATE"
-          echo "=========================================="
-          echo ""
-          echo "SAST: aprovado"
-          echo "SCA: aprovado"
-          echo "Testes de segurança: aprovados"
-          echo ""
-          echo "Critério de bloqueio:"
-          echo "Vulnerabilidades High ou Critical bloqueiam o pipeline."
-          echo ""
-          echo "Security Gate aprovado."
+          test -f iast-runtime.log
+          echo "Evidência IAST gerada com sucesso."
+          cat iast-runtime.log
+
+      - name: Salvar relatório IAST
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iast-runtime-report
+          path: iast-runtime.log
+
   # ==========================================================
-  # 5. DAST - ANÁLISE DINÂMICA DA APLICAÇÃO
+  # 4. DAST - ANÁLISE DINÂMICA DA APLICAÇÃO
   # ==========================================================
 
   dast:
@@ -216,3 +198,35 @@ jobs:
         if: always()
         run: |
           cat api.log
+
+  # ==========================================================
+  # 5. SECURITY GATE
+  # ==========================================================
+
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+
+    needs:
+      - sast
+      - sca
+      - security-tests
+      - dast
+
+    steps:
+      - name: Verificar resultado das análises
+        run: |
+          echo "=========================================="
+          echo "        DEVSECOPS SECURITY GATE"
+          echo "=========================================="
+          echo ""
+          echo "SAST: aprovado"
+          echo "SCA: aprovado"
+          echo "Testes de segurança: aprovados"
+          echo "IAST: aprovado"
+          echo "DAST: aprovado"
+          echo ""
+          echo "Critério de bloqueio:"
+          echo "Vulnerabilidades High ou Critical bloqueiam o pipeline."
+          echo ""
+          echo "Security Gate aprovado."

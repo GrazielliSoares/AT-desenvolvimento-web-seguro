@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda do Dia - Recepção{% endblock %}
+
+{% block content %}
+<h1>Agenda do Dia - Recepção</h1>
+<p>Consulta segura de agendamentos internos (Protegido contra XSS).</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID Consulta</th>
+            <th>ID Paciente</th>
+            <th>ID Profissional</th>
+            <th>Data / Hora</th>
+            <th>Status</th>
+            <th>Observações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for consulta in consultas %}
+        <tr>
+            <td>{{ consulta.id }}</td>
+            <td>{{ consulta.paciente_id }}</td>
+            <td>{{ consulta.profissional_id }}</td>
+            <td>{{ consulta.data_hora }}</td>
+            <td>{{ consulta.status }}</td>
+            <td>{{ consulta.observacoes }}</td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6">Nenhuma consulta agendada para hoje.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}1
